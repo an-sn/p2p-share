@@ -1,7 +1,6 @@
 #ifndef PEER_STORAGE_HPP
 #define PEER_STORAGE_HPP
 
-#include <boost/asio/ip/tcp.hpp>
 #include "PeerInfo.hpp"
 
 class IPeerStorage {

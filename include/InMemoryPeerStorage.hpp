@@ -3,7 +3,6 @@
 
 #include "PeerStorage.hpp"
 #include <unordered_map>
-#include <boost/asio/ip/tcp.hpp>
 
 class InMemoryPeerStorage : public IPeerStorage {
 public:
@@ -11,7 +10,7 @@ public:
     const PeerInfo& getPeer(const boost::asio::ip::tcp::endpoint& endpoint) const override;
 
 private:
-    std::unordered_map<boost::asio::ip::tcp::endpoint, PeerInfo> peerList_;
+    std::unordered_map<boost::asio::ip::tcp::endpoint, PeerInfo> m_peerList;
 };
 
 #endif // IN_MEMORY_PEER_STORAGE_HPP

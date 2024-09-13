@@ -18,8 +18,8 @@ private:
     void doAccept();
     void onAccept(boost::system::error_code ec, tcp::socket socket);
 
-    net::io_context& ioc_;
-    tcp::acceptor& acceptor_;
+    net::io_context& m_ioc;
+    tcp::acceptor& m_acceptor;
 };
 
 #endif // HTTP_SERVER_HPP

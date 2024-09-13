@@ -5,15 +5,15 @@
 #include <iostream>
 
 HttpServer::HttpServer(net::io_context& ioc, tcp::acceptor& acceptor)
-    : ioc_(ioc), acceptor_(acceptor) {}
+    : m_ioc(ioc), m_acceptor(acceptor) {}
 
 void HttpServer::start() {
     doAccept();
 }
 
 void HttpServer::doAccept() {
-    acceptor_.async_accept(
-        net::make_strand(ioc_),
+    m_acceptor.async_accept(
+        net::make_strand(m_ioc),
         [this](boost::system::error_code ec, tcp::socket socket) {
             onAccept(ec, std::move(socket));
         });
