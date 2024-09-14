@@ -41,6 +41,9 @@ void HttpServer::onAccept(boost::system::error_code ec, tcp::socket socket) {
                 sp->shutdown(tcp::socket::shutdown_send, ec);
             });
     }
+    else{
+        std::cout << "Error: " << ec.message() << std::endl;
+    }
 
     // Accept the next connection
     doAccept();
