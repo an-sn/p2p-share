@@ -1,13 +1,11 @@
 #include "P2PServer.hpp"
 
-P2PServer::P2PServer()
-    : m_acceptor(m_ioc)
+P2PServer::P2PServer() : m_acceptor(m_ioc)
 {
 }
 
 P2PServer::~P2PServer()
 {
-
 }
 
 bool P2PServer::connectToDatabase(std::string ipAddress, unsigned short port)
