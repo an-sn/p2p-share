@@ -1,5 +1,4 @@
-#ifndef HTTP_SERVER_HPP
-#define HTTP_SERVER_HPP
+#pragma once
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -21,5 +20,3 @@ private:
     net::io_context& m_ioc;
     tcp::acceptor& m_acceptor;
 };
-
-#endif // HTTP_SERVER_HPP

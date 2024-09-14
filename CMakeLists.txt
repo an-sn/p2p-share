@@ -13,6 +13,7 @@ add_executable(p2p_server
     src/InMemoryPeerStorage.cpp
     src/HttpServer.cpp
     src/RedisPeerStorage.cpp
+    src/P2PServer.cpp
 )
 
 target_link_libraries(p2p_server 

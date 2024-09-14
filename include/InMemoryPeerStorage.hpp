@@ -1,5 +1,4 @@
-#ifndef IN_MEMORY_PEER_STORAGE_HPP
-#define IN_MEMORY_PEER_STORAGE_HPP
+#pragma once
 
 #include "PeerStorage.hpp"
 #include <unordered_map>
@@ -12,5 +11,3 @@ public:
 private:
     std::unordered_map<boost::asio::ip::tcp::endpoint, PeerInfo> m_peerList;
 };
-
-#endif // IN_MEMORY_PEER_STORAGE_HPP
