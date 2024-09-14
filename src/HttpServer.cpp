@@ -29,8 +29,6 @@ void HttpServer::onAccept(boost::system::error_code ec, tcp::socket socket)
     {
         std::cout << "Accepted connection from: " << socket.remote_endpoint()
                   << std::endl;
-
-        // Create a simple HTTP response
         auto const response =
             std::make_shared<http::response<http::string_body>>(
                 http::status::ok, 11);
@@ -39,7 +37,6 @@ void HttpServer::onAccept(boost::system::error_code ec, tcp::socket socket)
         response->body() = "Server is up";
         response->prepare_payload();
 
-        // Send the HTTP response
         auto sp = std::make_shared<tcp::socket>(std::move(socket));
         http::async_write(
             *sp, *response,
@@ -49,7 +46,6 @@ void HttpServer::onAccept(boost::system::error_code ec, tcp::socket socket)
                     std::cerr << "Error sending response: " << ec.message()
                               << std::endl;
                 }
-                // Close the connection after sending the response
                 sp->shutdown(tcp::socket::shutdown_send, ec);
             });
     }
@@ -58,6 +54,5 @@ void HttpServer::onAccept(boost::system::error_code ec, tcp::socket socket)
         std::cout << "Error: " << ec.message() << std::endl;
     }
 
-    // Accept the next connection
     doAccept();
 }
