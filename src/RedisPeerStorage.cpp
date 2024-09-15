@@ -1,6 +1,5 @@
 #include "RedisPeerStorage.hpp"
-#include <hiredis/hiredis.h>
-#include <stdexcept>
+#include <iostream>
 
 RedisPeerStorage::RedisPeerStorage()
 {
@@ -14,11 +13,10 @@ RedisPeerStorage::~RedisPeerStorage()
     }
 }
 
-void RedisPeerStorage::addPeer(const boost::asio::ip::tcp::endpoint &endpoint)
+void RedisPeerStorage::addPeer(const PeerInfo &peerInfo)
 {
 }
-const PeerInfo &
-RedisPeerStorage::getPeer(const boost::asio::ip::tcp::endpoint &endpoint) const
+const PeerInfo &RedisPeerStorage::getPeer(const std::string &peerId) const
 {
 }
 

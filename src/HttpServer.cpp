@@ -4,8 +4,9 @@
 #include <boost/beast/http.hpp>
 #include <iostream>
 
-HttpServer::HttpServer(net::io_context &ioc, tcp::acceptor &acceptor)
-    : m_ioc(ioc), m_acceptor(acceptor)
+HttpServer::HttpServer(net::io_context &ioc, tcp::acceptor &acceptor,
+                       RedisPeerStorage &redisDb)
+    : m_ioc(ioc), m_acceptor(acceptor), m_redisDb(redisDb)
 {
 }
 

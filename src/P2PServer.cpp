@@ -21,7 +21,7 @@ void P2PServer::startListening()
     m_acceptor.bind(endpoint);
     m_acceptor.listen();
 
-    HttpServer httpServer(m_ioc, m_acceptor);
+    HttpServer httpServer(m_ioc, m_acceptor, m_redisDb);
     httpServer.start();
     m_ioc.run();
 }

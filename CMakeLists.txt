@@ -10,7 +10,6 @@ include_directories(include/)
 
 add_executable(p2p_server
     src/main.cpp
-    src/InMemoryPeerStorage.cpp
     src/HttpServer.cpp
     src/RedisPeerStorage.cpp
     src/P2PServer.cpp
