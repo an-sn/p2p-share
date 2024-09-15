@@ -1,28 +1,16 @@
-IndentAccessModifiers: true
-AlignTrailingComments: true
-AllowShortFunctionsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: true
-AllowShortLoopsOnASingleLine: true
-BreakBeforeBinaryOperators: false
-IndentWidth: 4
-SortIncludes: false
-NamespaceIndentation: All
-AlignConsecutiveAssignments: true
-AllowShortEnumsOnASingleLine: false
-IndentCaseBlocks: true
-IndentCaseLabels: true
-BraceWrapping:
-  AfterClass:      true
-  AfterControlStatement: true
-  AfterEnum:       true
-  AfterFunction:   true
-  AfterNamespace:  true
-  AfterObjCDeclaration: true
-  AfterStruct:     true
-  AfterUnion:      true
-  BeforeCatch:     true
-  BeforeElse:      true
-  IndentBraces:    false
-BreakBeforeBraces: Custom
-AlignConsecutiveMacros: true
-AlignConsecutiveDeclarations: true
+---
+Language:        Cpp
+BasedOnStyle:    LLVM             # Start with LLVM base style
+IndentWidth:     4                # Use 4 spaces for indentation
+TabWidth:        4                # Tab width is also 4 spaces
+UseTab:          Never            # Never use tabs, always spaces
+ColumnLimit:     120              # Set the line length limit to 120 characters
+BreakBeforeBraces: Attach          # Attach opening braces to the previous line
+AllowShortIfStatementsOnASingleLine: false  # Avoid single-line if statements
+AllowShortFunctionsOnASingleLine: false     # Keep short functions multiline
+SpacesInAngles:  false            # No spaces between angle brackets in templates
+PointerAlignment: Left            # Align '*' and '&' with the type (e.g. `int* ptr`)
+SpaceBeforeParens: ControlStatements # Space before parentheses in control statements (if, for, while)
+AlignTrailingComments: true       # Align trailing comments
+SortIncludes:    false            # Do not sort includes
+KeepEmptyLinesAtTheStartOfBlocks: false  # Remove empty lines at the start of blocks
