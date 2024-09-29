@@ -11,8 +11,6 @@ class RedisPeerStorage {
     RedisPeerStorage();
     ~RedisPeerStorage();
 
-    void addPeer(const PeerInfo& peerInfo);
-    const PeerInfo& getPeer(const std::string& peerId) const;
     bool connect(std::string ipAddress, unsigned short port);
 
   private:

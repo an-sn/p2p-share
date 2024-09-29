@@ -11,11 +11,6 @@ RedisPeerStorage::~RedisPeerStorage() {
     }
 }
 
-void RedisPeerStorage::addPeer(const PeerInfo& peerInfo) {
-}
-const PeerInfo& RedisPeerStorage::getPeer(const std::string& peerId) const {
-}
-
 bool RedisPeerStorage::connect(std::string ipAddress, unsigned short port) {
     m_redisContext = redisConnect(ipAddress.c_str(), port);
     if (m_redisContext == nullptr) {
