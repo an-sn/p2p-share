@@ -1,4 +1,5 @@
 #include "RedisPeerStorage.hpp"
+#include "FileMetaData.hpp"
 
 #include <iostream>
 
@@ -39,11 +40,16 @@ bool RedisPeerStorage::storePeerInfo(const std::string& uuid, const std::string&
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
     }
-    if (reply->type == REDIS_REPLY_INTEGER) {
-        std::cout << "Stored peer info successfully." << std::endl;
-    } else {
-        std::cerr << "Unexpected reply type: " << reply->type << std::endl;
-    }
+    auto replyType = reply->type;
     freeReplyObject(reply);
+    if (replyType != REDIS_REPLY_INTEGER) {
+        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool RedisPeerStorage::storeFileMetadata(FileMetadata &fileMetadata)
+{
     return true;
 }
