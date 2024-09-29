@@ -27,3 +27,23 @@ bool RedisPeerStorage::connect(std::string ipAddress, unsigned short port) {
     std::cout << "Successfully connected to Redis DB!" << std::endl;
     return true;
 }
+
+bool RedisPeerStorage::storePeerInfo(const std::string& uuid, const std::string& peerIp, const std::string& peerPort) {
+    if (!m_redisContext) {
+        std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
+        return false;
+    }
+    std::string command = "HSET " + uuid + " peer_ip " + peerIp + " peer_port " + peerPort;
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, command.c_str()));
+    if (reply == nullptr) {
+        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        return false;
+    }
+    if (reply->type == REDIS_REPLY_INTEGER) {
+        std::cout << "Stored peer info successfully." << std::endl;
+    } else {
+        std::cerr << "Unexpected reply type: " << reply->type << std::endl;
+    }
+    freeReplyObject(reply);
+    return true;
+}

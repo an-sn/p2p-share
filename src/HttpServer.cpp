@@ -6,6 +6,7 @@
 
 #include "Utils.hpp"
 #include "HttpServer.hpp"
+#include "RedisPeerStorage.hpp"
 
 HttpServer::HttpServer(net::io_context& ioc, tcp::acceptor& acceptor, RedisPeerStorage& redisDb)
     : m_ioc(ioc), m_acceptor(acceptor), m_redisDb(redisDb) {
@@ -42,67 +43,56 @@ void HttpServer::onAccept(boost::system::error_code ec, std::unique_ptr<tcp::soc
     doAccept();
 }
 
-boost::json::object HttpServer::parseRequest(std::shared_ptr<http::request<http::string_body>> request)
-{
+boost::json::object HttpServer::parseRequest(std::shared_ptr<http::request<http::string_body>> request) {
     boost::json::value json_value = boost::json::parse(request->body());
-    boost::json::object json_obj = json_value.as_object();
-    return json_obj;
+    return std::move(json_value.as_object());
+}
+
+void HttpServer::sendJsonResponse(const boost::json::object& responseJson, http::status status,
+                                  unsigned int httpVersion, std::unique_ptr<tcp::socket> socket) {
+    auto res = std::make_shared<http::response<http::string_body>>(status, httpVersion);
+    res->set(http::field::server, "P2P File Sharing Server");
+    res->set(http::field::content_type, "application/json");
+    res->keep_alive(false);
+    res->body() = boost::json::serialize(responseJson);
+    res->prepare_payload();
+
+    http::async_write(*socket, *res, [res, socket = std::move(socket)](beast::error_code ec, std::size_t) {
+        if (ec) {
+            std::cerr << "Error sending response: " << ec.message() << std::endl;
+        }
+    });
+}
+
+void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http::string_body>>& request,
+                                        std::unique_ptr<tcp::socket> socket) {
+    auto reqJson = parseRequest(request);
+    auto peerIp = utils::getFieldValue<std::string>(reqJson, "peer_ip");
+    auto peerPort = utils::getFieldValue<std::string>(reqJson, "peer_port");
+    auto uuid = utils::generateUuid();
+    http::status status =
+        (m_redisDb.storePeerInfo(uuid, peerIp, peerPort)) ? http::status::ok : http::status::internal_server_error;
+    json::object responseJson;
+    responseJson["uuid"] = uuid;
+    sendJsonResponse(responseJson, status, request->version(), std::move(socket));
 }
 
 void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
                                 std::shared_ptr<http::request<http::string_body>> request,
                                 std::unique_ptr<tcp::socket> socket) {
-    std::cout << "Request Method: " << request->method_string() << std::endl;
-    std::cout << "Request Target: " << request->target() << std::endl;
-
-    std::cout << "Request Headers:" << std::endl;
-    for (const auto& field : request->base()) {
-        std::cout << field.name_string() << ": " << field.value() << std::endl;
-    }
-
-    if (request->method() == http::verb::post || request->method() == http::verb::put) {
+    if (request->method() == http::verb::post) {
         try {
-            auto reqJson = parseRequest(request);
-
-            switch(request->target())
-            {
-                case "discovery":
-                    
-                default:
-                    std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
+            auto target = request->target();
+            if (target == "/discovery") {
+                handleDiscoveryRequest(request, std::move(socket));
+            } else {
+                std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
             }
-
-            auto peerId = utils::getFieldValue<std::string>(reqJson, "peer_ip");
-            auto peerPort = utils::getFieldValue<int64_t>(reqJson, "peer_port");
-
-            // std::cout << "Peer IP: " << peerId << std::endl;
-            // std::cout << "Peer Port: " << peerPort << std::endl;
-            auto uuid = utils::generateUuid();
-
-            json::object responseJson;
-            responseJson["uuid"] = uuid;
-            
-            auto res = std::make_shared<http::response<http::string_body>>(http::status::ok, request->version());
-
-            // http::response<http::string_body> res{http::status::ok, request->version()};
-            res->set(http::field::server, "P2P File Sharing Server");
-            res->set(http::field::content_type, "application/json");
-            res->keep_alive(request->keep_alive());
-            res->body() = json::serialize(responseJson);
-            res->prepare_payload();
-            http::async_write(*socket, *res,
-                [this, res, socket = std::move(socket)](beast::error_code ec, std::size_t) {
-                    if (ec) {
-                        std::cerr << "Error sending response: " << ec.message() << std::endl;
-                    }
-                });
-
-            // std::cout << "UUID : " << uuid << std::endl;
 
         } catch (const boost::json::system_error& e) {
             std::cerr << "JSON parsing failed: " << e.what() << std::endl;
         } catch (const std::runtime_error& e) {
-            std::cerr << "Failed to extract field from JSON " << e.what() << std::endl; 
+            std::cerr << "Failed to extract field from JSON " << e.what() << std::endl;
         }
     }
 }

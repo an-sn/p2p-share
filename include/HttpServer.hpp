@@ -21,9 +21,12 @@ class HttpServer {
     void doAccept();
     void onAccept(boost::system::error_code ec, std::unique_ptr<tcp::socket> socket);
     void processRequest(std::shared_ptr<beast::flat_buffer> buffer,
-                        std::shared_ptr<http::request<http::string_body>> request,
-                        std::unique_ptr<tcp::socket> socket);
+                        std::shared_ptr<http::request<http::string_body>> request, std::unique_ptr<tcp::socket> socket);
     boost::json::object parseRequest(std::shared_ptr<http::request<http::string_body>> request);
+    void handleDiscoveryRequest(const std::shared_ptr<http::request<http::string_body>>& request,
+                                std::unique_ptr<tcp::socket> socket);
+    void sendJsonResponse(const boost::json::object& responseJson, http::status status, unsigned int httpVersion,
+                          std::unique_ptr<tcp::socket> socket);
     net::io_context& m_ioc;
     tcp::acceptor& m_acceptor;
     RedisPeerStorage& m_redisDb;
