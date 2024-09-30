@@ -74,11 +74,9 @@ void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http
     json::object responseJson;
     responseJson["uuid"] = uuid;
     PeerInfo peer = {.peerUuid = std::move(utils::generateUuid()),
-                          .peerIp = std::move(utils::getFieldValue<std::string>(reqJson, "peer_ip")),
-                          .peerPort = std::move(utils::getFieldValue<uint64_t>(reqJson, "peer_port"))
-    };
-    http::status status =
-        (m_redisDb.storePeerInfo(peer)) ? http::status::ok : http::status::internal_server_error;
+                     .peerIp = std::move(utils::getFieldValue<std::string>(reqJson, "peer_ip")),
+                     .peerPort = std::move(utils::getFieldValue<uint64_t>(reqJson, "peer_port"))};
+    http::status status = (m_redisDb.storePeerInfo(peer)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse(responseJson, status, request->version(), std::move(socket));
 }
 

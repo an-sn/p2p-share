@@ -35,8 +35,9 @@ bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
-    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld", peerInfo.peerUuid.c_str(),
-                                                                peerInfo.peerIp.c_str(), peerInfo.peerPort));
+    redisReply* reply =
+        static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld",
+                                              peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
