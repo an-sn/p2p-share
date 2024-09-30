@@ -1,5 +1,6 @@
 #include "RedisPeerStorage.hpp"
 #include "FileMetaData.hpp"
+#include "PeerInfo.hpp"
 
 #include <iostream>
 
@@ -29,14 +30,13 @@ bool RedisPeerStorage::connect(std::string ipAddress, unsigned short port) {
     return true;
 }
 
-bool RedisPeerStorage::storePeerInfo(const std::string& uuid, const std::string& peerIp, const std::string& peerPort) {
+bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
     if (!m_redisContext) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
-    std::string command = "HSET " + uuid + " peer_ip " + peerIp + " peer_port " + peerPort;
-    std::cout << "PEER SAVE COMMAND : " << command << std::endl;
-    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, command.c_str()));
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld", peerInfo.peerUuid.c_str(),
+                                                                peerInfo.peerIp.c_str(), peerInfo.peerPort));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
@@ -51,7 +51,7 @@ bool RedisPeerStorage::storePeerInfo(const std::string& uuid, const std::string&
     return true;
 }
 
-bool RedisPeerStorage::storeFileMetadata(FileMetadata& metaData) {
+bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     if (!m_redisContext) {
         std::cerr << "Failed to store file metadata. Redis connection is not established." << std::endl;
         return false;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <boost/asio/ip/tcp.hpp>
+#include <string>
+#include <vector>
 
 struct PeerInfo {
-    boost::asio::ip::tcp::endpoint endpoint;
-
-    PeerInfo(const boost::asio::ip::tcp::endpoint& ep = boost::asio::ip::tcp::endpoint()) : endpoint(ep) {
-    }
+    std::string peerUuid;
+    std::string peerIp;
+    uint64_t peerPort;
 };

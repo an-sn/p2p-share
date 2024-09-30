@@ -9,6 +9,7 @@
 #include "HttpServer.hpp"
 #include "RedisPeerStorage.hpp"
 #include "FileMetadata.hpp"
+#include "PeerInfo.hpp"
 
 HttpServer::HttpServer(net::io_context& ioc, tcp::acceptor& acceptor, RedisPeerStorage& redisDb)
     : m_ioc(ioc), m_acceptor(acceptor), m_redisDb(redisDb) {
@@ -69,13 +70,15 @@ void HttpServer::sendJsonResponse(const boost::json::object& responseJson, http:
 void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http::string_body>>& request,
                                         std::unique_ptr<tcp::socket> socket) {
     auto reqJson = parseRequest(request);
-    auto peerIp = utils::getFieldValue<std::string>(reqJson, "peer_ip");
-    auto peerPort = utils::getFieldValue<std::string>(reqJson, "peer_port");
     auto uuid = utils::generateUuid();
-    http::status status =
-        (m_redisDb.storePeerInfo(uuid, peerIp, peerPort)) ? http::status::ok : http::status::internal_server_error;
     json::object responseJson;
     responseJson["uuid"] = uuid;
+    PeerInfo peer = {.peerUuid = std::move(utils::generateUuid()),
+                          .peerIp = std::move(utils::getFieldValue<std::string>(reqJson, "peer_ip")),
+                          .peerPort = std::move(utils::getFieldValue<uint64_t>(reqJson, "peer_port"))
+    };
+    http::status status =
+        (m_redisDb.storePeerInfo(peer)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse(responseJson, status, request->version(), std::move(socket));
 }
 
@@ -89,8 +92,8 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
     FileMetadata metaData = {.peerUuid = std::move(utils::getFieldValue<std::string>(reqJson, "peer_uuid")),
                              .fileName = std::move(utils::getFieldValue<std::string>(reqJson, "file_name")),
                              .fileNameUuid = std::move(utils::getFieldValue<std::string>(reqJson, "file_name_uuid")),
-                             .fileSize = utils::getFieldValue<int64_t>(reqJson, "file_size"),
-                             .totalChunks = utils::getFieldValue<int64_t>(reqJson, "total_chunks"),
+                             .fileSize = utils::getFieldValue<uint64_t>(reqJson, "file_size"),
+                             .totalChunks = utils::getFieldValue<uint64_t>(reqJson, "total_chunks"),
                              .chunkHashes = std::move(chunkHashes)};
     http::status status =
         (m_redisDb.storeFileMetadata(metaData)) ? http::status::ok : http::status::internal_server_error;

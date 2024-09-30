@@ -12,7 +12,7 @@ template <typename T> T getValue(const json::value& val);
 
 template <> std::string getValue<std::string>(const json::value& val);
 
-template <> int64_t getValue<int64_t>(const json::value& val);
+template <> uint64_t getValue<uint64_t>(const json::value& val);
 
 template <> double getValue<double>(const json::value& val);
 

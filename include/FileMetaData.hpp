@@ -7,7 +7,7 @@ struct FileMetadata {
     std::string peerUuid;
     std::string fileName;
     std::string fileNameUuid;
-    int64_t fileSize;
-    int64_t totalChunks;
+    uint64_t fileSize;
+    uint64_t totalChunks;
     std::vector<std::string> chunkHashes;
 };
