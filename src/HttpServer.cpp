@@ -80,20 +80,18 @@ void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http
 }
 
 void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<http::string_body>>& request,
-                                        std::unique_ptr<tcp::socket> socket) {
+                                         std::unique_ptr<tcp::socket> socket) {
     auto reqJson = parseRequest(request);
     std::vector<std::string> chunkHashes;
     for (const auto& chunkHash : reqJson.at("chunk_hashes").as_array()) {
         chunkHashes.push_back(chunkHash.as_string().c_str());
     }
-    FileMetadata metaData = {
-        .peerUuid = std::move(utils::getFieldValue<std::string>(reqJson, "peer_uuid")),
-        .fileName = std::move(utils::getFieldValue<std::string>(reqJson, "file_name")),
-        .fileNameUuid = std::move(utils::getFieldValue<std::string>(reqJson, "file_name_uuid")),
-        .fileSize = utils::getFieldValue<int64_t>(reqJson, "file_size"),
-        .totalChunks = utils::getFieldValue<int64_t>(reqJson, "total_chunks"),
-        .chunkHashes = std::move(chunkHashes)
-    };
+    FileMetadata metaData = {.peerUuid = std::move(utils::getFieldValue<std::string>(reqJson, "peer_uuid")),
+                             .fileName = std::move(utils::getFieldValue<std::string>(reqJson, "file_name")),
+                             .fileNameUuid = std::move(utils::getFieldValue<std::string>(reqJson, "file_name_uuid")),
+                             .fileSize = utils::getFieldValue<int64_t>(reqJson, "file_size"),
+                             .totalChunks = utils::getFieldValue<int64_t>(reqJson, "total_chunks"),
+                             .chunkHashes = std::move(chunkHashes)};
     http::status status =
         (m_redisDb.storeFileMetadata(metaData)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse({}, status, request->version(), std::move(socket));
@@ -107,10 +105,9 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
             auto target = request->target();
             if (target == "/discovery") {
                 handleDiscoveryRequest(request, std::move(socket));
-            } else if(target == "/file_advert") {
+            } else if (target == "/file_advert") {
                 handleFileAdvertisement(request, std::move(socket));
-            }
-            else{
+            } else {
                 std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
             }
 

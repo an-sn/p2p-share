@@ -26,7 +26,7 @@ class HttpServer {
     void handleDiscoveryRequest(const std::shared_ptr<http::request<http::string_body>>& request,
                                 std::unique_ptr<tcp::socket> socket);
     void handleFileAdvertisement(const std::shared_ptr<http::request<http::string_body>>& request,
-                                std::unique_ptr<tcp::socket> socket);
+                                 std::unique_ptr<tcp::socket> socket);
     void sendJsonResponse(const boost::json::object& responseJson, http::status status, unsigned int httpVersion,
                           std::unique_ptr<tcp::socket> socket);
     net::io_context& m_ioc;
