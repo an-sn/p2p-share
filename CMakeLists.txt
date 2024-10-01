@@ -8,6 +8,8 @@ find_package(Boost 1.83.0 COMPONENTS system json REQUIRED)
 
 include_directories(include/)
 
+add_compile_options(-Wunused-variable)
+
 add_executable(p2p_server
     src/main.cpp
     src/HttpServer.cpp

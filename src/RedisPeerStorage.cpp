@@ -110,7 +110,6 @@ std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
         FileMetadata metaData;
         if (start != std::string::npos && end != std::string::npos) {
             metaData.fileNameUuid = std::move(key.substr(start, end - start));
-            std::string hmgetCommand = "HMGET " + key + " fileName fileSize fileDescription totalChunks";
             redisReply* metaReply = static_cast<redisReply*>(
                 redisCommand(m_redisContext, "HMGET %s fileName fileSize fileDescription totalChunks", key.c_str()));
             if (metaReply && metaReply->elements == 4) {
