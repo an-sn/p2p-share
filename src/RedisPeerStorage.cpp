@@ -60,13 +60,18 @@ bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "MULTI"));
     freeReplyObject(reply);
     reply = static_cast<redisReply*>(redisCommand(
-        m_redisContext, "HSET file:%s:metadata fileName %s fileSize %lld totalChunks %lld",
-        metaData.fileNameUuid.c_str(), metaData.fileName.c_str(), metaData.fileSize, metaData.totalChunks));
+        m_redisContext, "HSET file:%s:metadata fileName %s fileSize %lld fileDescription %s totalChunks %lld",
+        metaData.fileNameUuid.c_str(), metaData.fileName.c_str(), metaData.fileSize, metaData.fileDescription.c_str(),
+        metaData.totalChunks));
     freeReplyObject(reply);
     for (auto chunkId = 0; chunkId < metaData.totalChunks; chunkId++) {
         const auto& chunkHash = metaData.chunkHashes[chunkId];
         reply = static_cast<redisReply*>(redisCommand(m_redisContext, "HSET file:%s:chunks:%lld hash %s",
                                                       metaData.fileNameUuid.c_str(), chunkId, chunkHash.c_str()));
+        freeReplyObject(reply);
+        reply =
+            static_cast<redisReply*>(redisCommand(m_redisContext, "SADD file:%s:chunks:%lld:peers %s",
+                                                  metaData.fileNameUuid.c_str(), chunkId, metaData.peerUuid.c_str()));
         freeReplyObject(reply);
     }
     reply = static_cast<redisReply*>(redisCommand(m_redisContext, "EXEC"));
@@ -89,4 +94,34 @@ bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     freeReplyObject(reply);
     std::cout << "[DEBUG] Metadata and chunk data saved successfully." << std::endl;
     return true;
+}
+
+std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
+    std::vector<FileMetadata> fileDetails;
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "KEYS file:*:metadata"));
+    if (reply == nullptr) {
+        std::cerr << "Error: " << m_redisContext->errstr << std::endl;
+        return fileDetails;
+    }
+    for (size_t i = 0; i < reply->elements; ++i) {
+        std::string key = reply->element[i]->str;
+        auto start = key.find(":") + 1;
+        auto end = key.rfind(":metadata");
+        FileMetadata metaData;
+        if (start != std::string::npos && end != std::string::npos) {
+            metaData.fileNameUuid = std::move(key.substr(start, end - start));
+            std::string hmgetCommand = "HMGET " + key + " fileName fileSize fileDescription totalChunks";
+            redisReply* metaReply = static_cast<redisReply*>(
+                redisCommand(m_redisContext, "HMGET %s fileName fileSize fileDescription totalChunks", key.c_str()));
+            if (metaReply && metaReply->elements == 4) {
+                metaData.fileName = std::move(metaReply->element[0]->str);
+                metaData.fileSize = std::stoull(metaReply->element[1]->str);
+                metaData.fileDescription = std::move(metaReply->element[2]->str);
+                metaData.totalChunks = std::stoull(metaReply->element[3]->str);
+                fileDetails.push_back(std::move(metaData));
+            }
+            freeReplyObject(metaReply);
+        }
+    }
+    return fileDetails;
 }

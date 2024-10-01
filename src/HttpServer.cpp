@@ -90,6 +90,8 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
     FileMetadata metaData = {.peerUuid = std::move(utils::getFieldValue<std::string>(reqJson, "peer_uuid")),
                              .fileName = std::move(utils::getFieldValue<std::string>(reqJson, "file_name")),
                              .fileNameUuid = std::move(utils::getFieldValue<std::string>(reqJson, "file_name_uuid")),
+                             .fileDescription =
+                                 std::move(utils::getFieldValue<std::string>(reqJson, "file_description")),
                              .fileSize = utils::getFieldValue<uint64_t>(reqJson, "file_size"),
                              .totalChunks = utils::getFieldValue<uint64_t>(reqJson, "total_chunks"),
                              .chunkHashes = std::move(chunkHashes)};
@@ -98,11 +100,25 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
     sendJsonResponse({}, status, request->version(), std::move(socket));
 }
 
+void HttpServer::handleFileListRequest(const std::shared_ptr<http::request<http::string_body>>& request,
+                                       std::unique_ptr<tcp::socket> socket) {
+    auto fileList = std::move(m_redisDb.retrieveAllFileDetails());
+    json::object responseJson;
+    for (const auto& file : fileList) {
+        json::object fileJson;
+        fileJson["file_name"] = std::move(file.fileName);
+        fileJson["file_description"] = std::move(file.fileDescription);
+        fileJson["file_size"] = file.fileSize;
+        responseJson[std::move(file.fileNameUuid)] = std::move(fileJson);
+    }
+    sendJsonResponse(responseJson, http::status::ok, request->version(), std::move(socket));
+}
+
 void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
                                 std::shared_ptr<http::request<http::string_body>> request,
                                 std::unique_ptr<tcp::socket> socket) {
-    if (request->method() == http::verb::post) {
-        try {
+    try {
+        if (request->method() == http::verb::post) {
             auto target = request->target();
             if (target == "/discovery") {
                 handleDiscoveryRequest(request, std::move(socket));
@@ -111,11 +127,17 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
             } else {
                 std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
             }
-
-        } catch (const boost::json::system_error& e) {
-            std::cerr << "JSON parsing failed: " << e.what() << std::endl;
-        } catch (const std::runtime_error& e) {
-            std::cerr << "Failed to extract field from JSON " << e.what() << std::endl;
+        } else if (request->method() == http::verb::get) {
+            auto target = request->target();
+            if (target == "/file_list") {
+                handleFileListRequest(request, std::move(socket));
+            }
         }
+    } catch (const boost::json::system_error& e) {
+        std::cerr << "JSON parsing failed: " << e.what() << std::endl;
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Failed to extract field from JSON " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
     }
 }
