@@ -35,6 +35,7 @@ bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
+    std::cout << "Saving peer:" << peerInfo.peerUuid << std::endl;
     redisReply* reply =
         static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld",
                                               peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort));
@@ -109,18 +110,70 @@ std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
         auto end = key.rfind(":metadata");
         FileMetadata metaData;
         if (start != std::string::npos && end != std::string::npos) {
-            metaData.fileNameUuid = std::move(key.substr(start, end - start));
+            metaData.fileNameUuid = key.substr(start, end - start);
             redisReply* metaReply = static_cast<redisReply*>(
-                redisCommand(m_redisContext, "HMGET %s fileName fileSize fileDescription totalChunks", key.c_str()));
-            if (metaReply && metaReply->elements == 4) {
-                metaData.fileName = std::move(metaReply->element[0]->str);
+                redisCommand(m_redisContext, "HMGET %s fileName fileSize fileDescription", key.c_str()));
+            if (metaReply && metaReply->elements == 3) {
+                metaData.fileName = metaReply->element[0]->str;
                 metaData.fileSize = std::stoull(metaReply->element[1]->str);
-                metaData.fileDescription = std::move(metaReply->element[2]->str);
-                metaData.totalChunks = std::stoull(metaReply->element[3]->str);
+                metaData.fileDescription = metaReply->element[2]->str;
                 fileDetails.push_back(std::move(metaData));
             }
             freeReplyObject(metaReply);
         }
     }
     return fileDetails;
+}
+
+std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::string& uuid) {
+    FileMetadata fileMetaData;
+    redisReply* reply =
+        static_cast<redisReply*>(redisCommand(m_redisContext, "HGET file:%s:metadata totalChunks", uuid.c_str()));
+
+    if (!reply) {
+        return std::nullopt;
+    }
+    fileMetaData.totalChunks = std::stoull(reply->str);
+    freeReplyObject(reply);
+    for (auto chunkIndex = 0; chunkIndex < fileMetaData.totalChunks; chunkIndex++) {
+        ChunkInfo chunk;
+        reply = static_cast<redisReply*>(
+            redisCommand(m_redisContext, "HGET file:%s:chunks:%lld hash", uuid.c_str(), chunkIndex));
+        if (!reply || reply->type != REDIS_REPLY_STRING) {
+            std::cout << "Failed to retrieve hash" << std::endl;
+            freeReplyObject(reply);
+            return std::nullopt;
+        }
+        chunk.hash = reply->str;
+        freeReplyObject(reply);
+        reply = static_cast<redisReply*>(
+            redisCommand(m_redisContext, "SMEMBERS file:%s:chunks:%lld:peers", uuid.c_str(), chunkIndex));
+        if (!reply || reply->type != REDIS_REPLY_ARRAY) {
+            std::cout << "Failed to fetch peers for chunk" << std::endl;
+            freeReplyObject(reply);
+            return std::nullopt;
+        }
+        for (auto peerIndex = 0; peerIndex < reply->elements; peerIndex++) {
+            IpPortPair ipPortPair;
+            std::string peerUuid = reply->element[peerIndex]->str;
+            redisReply* peerReply = static_cast<redisReply*>(
+                redisCommand(m_redisContext, "HMGET peer:%s peerIp peerPort", peerUuid.c_str()));
+            if (!peerReply || peerReply->type != REDIS_REPLY_ARRAY || peerReply->elements != 2) {
+                std::cout << "Failed to get peer details from UUID" << std::endl;
+                if (peerReply)
+                    freeReplyObject(peerReply);
+                continue;
+            }
+            if (peerReply->element[0]->type == REDIS_REPLY_STRING) {
+                ipPortPair.ip = peerReply->element[0]->str;
+            }
+            if (peerReply->element[1]->type == REDIS_REPLY_STRING) {
+                ipPortPair.port = peerReply->element[1]->str;
+            }
+            freeReplyObject(peerReply);
+            chunk.peers.push_back(std::move(ipPortPair));
+        }
+        fileMetaData.chunkDetails.push_back(std::move(chunk));
+    }
+    return fileMetaData;
 }

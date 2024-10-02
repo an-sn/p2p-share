@@ -48,7 +48,7 @@ void HttpServer::onAccept(boost::system::error_code ec, std::unique_ptr<tcp::soc
 
 boost::json::object HttpServer::parseRequest(std::shared_ptr<http::request<http::string_body>> request) {
     boost::json::value json_value = boost::json::parse(request->body());
-    return std::move(json_value.as_object());
+    return json_value.as_object();
 }
 
 void HttpServer::sendJsonResponse(const boost::json::object& responseJson, http::status status,
@@ -73,9 +73,9 @@ void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http
     auto uuid = utils::generateUuid();
     json::object responseJson;
     responseJson["uuid"] = uuid;
-    PeerInfo peer = {.peerUuid = std::move(utils::generateUuid()),
-                     .peerIp = std::move(utils::getFieldValue<std::string>(reqJson, "peer_ip")),
-                     .peerPort = std::move(utils::getFieldValue<uint64_t>(reqJson, "peer_port"))};
+    PeerInfo peer = {.peerUuid = std::move(uuid),
+                     .peerIp = utils::getFieldValue<std::string>(reqJson, "peer_ip"),
+                     .peerPort = utils::getFieldValue<uint64_t>(reqJson, "peer_port")};
     http::status status = (m_redisDb.storePeerInfo(peer)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse(responseJson, status, request->version(), std::move(socket));
 }
@@ -87,11 +87,10 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
     for (const auto& chunkHash : reqJson.at("chunk_hashes").as_array()) {
         chunkHashes.push_back(chunkHash.as_string().c_str());
     }
-    FileMetadata metaData = {.peerUuid = std::move(utils::getFieldValue<std::string>(reqJson, "peer_uuid")),
-                             .fileName = std::move(utils::getFieldValue<std::string>(reqJson, "file_name")),
-                             .fileNameUuid = std::move(utils::getFieldValue<std::string>(reqJson, "file_name_uuid")),
-                             .fileDescription =
-                                 std::move(utils::getFieldValue<std::string>(reqJson, "file_description")),
+    FileMetadata metaData = {.peerUuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid"),
+                             .fileName = utils::getFieldValue<std::string>(reqJson, "file_name"),
+                             .fileNameUuid = utils::getFieldValue<std::string>(reqJson, "file_name_uuid"),
+                             .fileDescription = utils::getFieldValue<std::string>(reqJson, "file_description"),
                              .fileSize = utils::getFieldValue<uint64_t>(reqJson, "file_size"),
                              .totalChunks = utils::getFieldValue<uint64_t>(reqJson, "total_chunks"),
                              .chunkHashes = std::move(chunkHashes)};
@@ -102,7 +101,7 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
 
 void HttpServer::handleFileListRequest(const std::shared_ptr<http::request<http::string_body>>& request,
                                        std::unique_ptr<tcp::socket> socket) {
-    auto fileList = std::move(m_redisDb.retrieveAllFileDetails());
+    auto fileList = m_redisDb.retrieveAllFileDetails();
     json::object responseJson;
     for (const auto& file : fileList) {
         json::object fileJson;
@@ -111,6 +110,34 @@ void HttpServer::handleFileListRequest(const std::shared_ptr<http::request<http:
         fileJson["file_size"] = file.fileSize;
         responseJson[std::move(file.fileNameUuid)] = std::move(fileJson);
     }
+    sendJsonResponse(responseJson, http::status::ok, request->version(), std::move(socket));
+}
+
+void HttpServer::handleFileRequest(const std::shared_ptr<http::request<http::string_body>>& request,
+                                   std::unique_ptr<tcp::socket> socket) {
+    auto reqJson = parseRequest(request);
+    auto fileUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid");
+    auto fileDetails = m_redisDb.retrieveFileDetails(fileUuid);
+    if (!fileDetails.has_value()) {
+        std::cout << "Failed to retrieve file details" << std::endl;
+        return;
+    }
+    json::object responseJson;
+    json::array chunkArray;
+    for (const auto& chunk : (*fileDetails).chunkDetails) {
+        json::object chunkJson;
+        chunkJson["hash"] = std::move(chunk.hash);
+        json::array peerArray;
+        for (const auto& peer : chunk.peers) {
+            json::object peerJson;
+            peerJson["ip"] = peer.ip;
+            peerJson["port"] = peer.port;
+            peerArray.push_back(std::move(peerJson));
+        }
+        chunkJson["peers"] = std::move(peerArray);
+        chunkArray.push_back(std::move(chunkJson));
+    }
+    responseJson["chunks"] = std::move(chunkArray);
     sendJsonResponse(responseJson, http::status::ok, request->version(), std::move(socket));
 }
 
@@ -131,6 +158,8 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
             auto target = request->target();
             if (target == "/file_list") {
                 handleFileListRequest(request, std::move(socket));
+            } else if (target == "/file_request") {
+                handleFileRequest(request, std::move(socket));
             }
         }
     } catch (const boost::json::system_error& e) {
