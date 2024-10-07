@@ -89,7 +89,7 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
     }
     FileMetadata metaData = {.peerUuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid"),
                              .fileName = utils::getFieldValue<std::string>(reqJson, "file_name"),
-                             .fileNameUuid = utils::getFieldValue<std::string>(reqJson, "file_name_uuid"),
+                             .fileNameUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid"),
                              .fileDescription = utils::getFieldValue<std::string>(reqJson, "file_description"),
                              .fileSize = utils::getFieldValue<uint64_t>(reqJson, "file_size"),
                              .totalChunks = utils::getFieldValue<uint64_t>(reqJson, "total_chunks"),
@@ -130,8 +130,8 @@ void HttpServer::handleFileRequest(const std::shared_ptr<http::request<http::str
         json::array peerArray;
         for (const auto& peer : chunk.peers) {
             json::object peerJson;
-            peerJson["ip"] = peer.ip;
-            peerJson["port"] = peer.port;
+            peerJson["ip"] = std::move(peer.ip);
+            peerJson["port"] = std::move(peer.port);
             peerArray.push_back(std::move(peerJson));
         }
         chunkJson["peers"] = std::move(peerArray);

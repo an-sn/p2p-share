@@ -35,7 +35,6 @@ bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
-    std::cout << "Saving peer:" << peerInfo.peerUuid << std::endl;
     redisReply* reply =
         static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld",
                                               peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort));
@@ -125,6 +124,7 @@ std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
     return fileDetails;
 }
 
+// TODO: Pipeling commands to improve performance.
 std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::string& uuid) {
     FileMetadata fileMetaData;
     redisReply* reply =
