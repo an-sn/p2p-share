@@ -4,6 +4,12 @@
 #include <vector>
 #include <utility>
 
+struct ChunkAdvertisement {
+    std::string fileUuid;
+    std::string peerUuid;
+    uint64_t chunkId;
+};
+
 struct IpPortPair {
     std::string ip;
     std::string port;

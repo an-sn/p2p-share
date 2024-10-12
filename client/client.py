@@ -6,12 +6,13 @@ import requests
 import uuid
 import shutil
 import hashlib
+import atexit
 from HttpServer import *
 
 CHUNK_SIZE = 1 * 1024 * 1024
 peer_uuid = None
-advertised_files = {}
 available_files = {}
+save_file_path = "/tmp/peer_data.json"
 
 def validate_file(file_name):
     if not os.path.isfile(file_name):
@@ -91,14 +92,16 @@ def download_chunk(file_uuid, chunk_index, chunk_info, download_path):
         sha256_hash = hashlib.sha256()
         with open(chunk_file_path, 'wb') as chunk_file:
             for chunk in response.iter_content(chunk_size=4096):
-                if chunk:  # Filter out keep-alive new chunks
+                if chunk:
                     chunk_file.write(chunk)
                     sha256_hash.update(chunk)
         downloaded_chunk_hash = sha256_hash.hexdigest()
         if(downloaded_chunk_hash == chunk_info["hash"]):
+            chunk_advert(file_uuid, chunk_index)
             return True
         else:
             print(f"Mismatch in chunk hash, expected: {chunk_info["hash"]}, Actual : f{downloaded_chunk_hash}")
+            return False
     except requests.exceptions.RequestException as e:
         print(f"Failed to get file:{file_uuid}::chunk:{chunk_index}, exception: {e}")
         return False
@@ -133,7 +136,7 @@ def file_request(file_uuid):
     if file_uuid not in available_files:
         print("Entered file UUID is not valid!")
         return
-    download_path = f"/tmp/p2p_client/{file_uuid}/"
+    download_path = f"/tmp/p2p_client_data/{file_uuid}/"
     try:
         header = {'Content-Type': 'application/json'}
         file_request_msg = {
@@ -169,11 +172,28 @@ def file_advert(file_name, chunk_size):
         header = {'Content-Type': 'application/json'}
         response = requests.post(f"{server_url}/file_advert", headers=header, data=json.dumps(file_advert_msg))
         response.raise_for_status()
-        advertised_files[file_uuid] = {"path" : destination_path, "chunk_dir": chunks_path, "chunk_hashes" : chunk_hashes}
+        file_info = {
+                "file_name" : os.path.basename(file_name),
+                "file_description" : "",
+                "file_size" : os.path.getsize(file_name)
+        }
+        available_files[file_uuid] = file_info
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Failed to send file request, exception: {e}")
-        return None
+
+def chunk_advert(file_uuid, chunk_index):
+    try:
+        chunk_advert_msg = {
+            "file_uuid" : file_uuid,
+            "peer_uuid" : peer_uuid,
+            "chunk_index" : chunk_index
+        }
+        header = {'Content-Type': 'application/json'}
+        response = requests.post(f"{server_url}/chunk_advert", headers=header, data=json.dumps(chunk_advert_msg))
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send chunk advertisement, exception: {e}")
 
 def connect_to_server(server_url, client_ip, client_port):
     header = {'Content-Type': 'application/json'}
@@ -203,6 +223,10 @@ commands = {
     "file_request": {
         "usage": "file_request <file_uuid>",
         "description": "Get file details from server and download if all chunks can be found."
+    },
+    "exit": {
+        "usage": "exit",
+        "description": "Shutdown the client. Peer UUID and available_file list will be saved."
     }
 }
 
@@ -213,6 +237,22 @@ def generate_command_options(commands):
         message += f"   Usage : {details['usage']}\n\n"
     message += "> "
     return message
+
+def shutdown_client():
+    print("Exiting client...")
+    sys.exit(0)
+
+def save_data_on_shutdown():
+    data_to_save = {
+        "peer_uuid": peer_uuid,
+        "available_files": available_files
+    }
+    try:
+        with open(save_file_path, 'w') as file:
+            json.dump(data_to_save, file, indent=4)
+        print(f"Data saved to {save_file_path}")
+    except Exception as e:
+        print(f"Failed to save data on shutdown: {e}")
 
 command_message = generate_command_options(commands)
 
@@ -231,6 +271,8 @@ def wait_for_command():
         elif command_type == "file_request":
             if(len(command_parts) == 2):
                 file_request(command_parts[1].strip())
+        elif command_type == "exit":
+            shutdown_client()
 
 # Main function
 
@@ -242,6 +284,7 @@ if __name__ == "__main__":
     parser.add_argument('--client_port', type=int, required=True, help="Port to which client will bind to communicate with peers")
     args = parser.parse_args()
     server_url = f"http://{args.server_ip}:{args.server_port}"
+    atexit.register(save_data_on_shutdown)
     discovery_response = connect_to_server(server_url, args.client_ip, args.client_port)
     if discovery_response == None:
         sys.exit(1)

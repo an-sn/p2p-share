@@ -96,6 +96,23 @@ bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     return true;
 }
 
+bool RedisPeerStorage::updateChunkPeerList(const ChunkAdvertisement& chunkAdvert) {
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "SADD file:%s:chunks:%lld:peers %s",
+                                                  chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId, chunkAdvert.peerUuid.c_str()));
+    if (!reply) {
+        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        return false;
+    }
+    auto replyType = reply->type;
+    freeReplyObject(reply);
+    if (replyType != REDIS_REPLY_INTEGER) {
+        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        return false;
+    }
+    std::cout << "[DEBUG] Updated chunk peers." << std::endl;
+    return true;
+}
+
 std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
     std::vector<FileMetadata> fileDetails;
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "KEYS file:*:metadata"));

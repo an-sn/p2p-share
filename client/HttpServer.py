@@ -20,6 +20,10 @@ class HttpFileHandler(BaseHTTPRequestHandler):
             request_body = self.rfile.read(content_length)
             json_data = json.loads(request_body)
             (file_uuid, chunk_id) = (json_data["file_uuid"], json_data["chunk_id"])
+            if file_uuid not in self.available_files:
+                self.send_response(404)
+                self.end_headers()
+                return
             chunk_path = os.path.join("/tmp/p2p_client_data", file_uuid, "chunks/", f"chunk{str(chunk_id)}")
             if not os.path.isfile(chunk_path):
                 self.send_response(404)
@@ -33,6 +37,7 @@ class HttpFileHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(chunk_data)
         except Exception as e:
+            print("Exception during file retrieve: ", e)
             self.send_response(500)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
