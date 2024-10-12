@@ -100,13 +100,11 @@ void HttpServer::handleFileAdvertisement(const std::shared_ptr<http::request<htt
 }
 
 void HttpServer::handleChunkAdvertisement(const std::shared_ptr<http::request<http::string_body>>& request,
-                           std::unique_ptr<tcp::socket> socket) {
+                                          std::unique_ptr<tcp::socket> socket) {
     auto reqJson = parseRequest(request);
-    ChunkAdvertisement chunkAdvert = {
-        .fileUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid"),
-        .peerUuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid"),
-        .chunkId = utils::getFieldValue<uint64_t>(reqJson, "chunk_index")
-    };
+    ChunkAdvertisement chunkAdvert = {.fileUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid"),
+                                      .peerUuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid"),
+                                      .chunkId = utils::getFieldValue<uint64_t>(reqJson, "chunk_index")};
     http::status status =
         (m_redisDb.updateChunkPeerList(chunkAdvert)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse({}, status, request->version(), std::move(socket));
@@ -166,8 +164,7 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
                 handleFileAdvertisement(request, std::move(socket));
             } else if (target == "/chunk_advert") {
                 handleChunkAdvertisement(request, std::move(socket));
-            }
-            else {
+            } else {
                 std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
             }
         } else if (request->method() == http::verb::get) {

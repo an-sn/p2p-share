@@ -98,7 +98,8 @@ bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
 
 bool RedisPeerStorage::updateChunkPeerList(const ChunkAdvertisement& chunkAdvert) {
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "SADD file:%s:chunks:%lld:peers %s",
-                                                  chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId, chunkAdvert.peerUuid.c_str()));
+                                                              chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
+                                                              chunkAdvert.peerUuid.c_str()));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
