@@ -70,9 +70,14 @@ void HttpServer::sendJsonResponse(const boost::json::object& responseJson, http:
 void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http::string_body>>& request,
                                         std::unique_ptr<tcp::socket> socket) {
     auto reqJson = parseRequest(request);
-    auto uuid = utils::generateUuid();
+    std::string uuid;
     json::object responseJson;
-    responseJson["uuid"] = uuid;
+    if (reqJson.contains("peer_uuid")) {
+        uuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid");
+    } else {
+        uuid = utils::generateUuid();
+        responseJson["uuid"] = uuid;
+    }
     PeerInfo peer = {.peerUuid = std::move(uuid),
                      .peerIp = utils::getFieldValue<std::string>(reqJson, "peer_ip"),
                      .peerPort = utils::getFieldValue<uint64_t>(reqJson, "peer_port")};

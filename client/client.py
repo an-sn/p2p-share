@@ -65,7 +65,6 @@ def file_list(print = False):
             available_files[file_uuid] = file_info
         if print:
             print_available_files()
-        return response_json
     except requests.exceptions.RequestException as e:
         print(f"Failed to send file list request, exception: {e}")
         return None
@@ -178,9 +177,8 @@ def file_advert(file_name, chunk_size):
                 "file_size" : os.path.getsize(file_name)
         }
         available_files[file_uuid] = file_info
-        return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Failed to send file request, exception: {e}")
+        print(f"Failed to send file advert, exception: {e}")
 
 def chunk_advert(file_uuid, chunk_index):
     try:
@@ -195,16 +193,29 @@ def chunk_advert(file_uuid, chunk_index):
     except requests.exceptions.RequestException as e:
         print(f"Failed to send chunk advertisement, exception: {e}")
 
-def connect_to_server(server_url, client_ip, client_port):
+def connect_to_server(server_url, client_ip, client_port, reconnect):
+    global peer_uuid
     header = {'Content-Type': 'application/json'}
     try:
-        discovery_request = {
-            "peer_ip": client_ip,
-            "peer_port": client_port
-        }
+        discovery_request = {}
+        if reconnect:
+            discovery_request = {
+                "peer_uuid" : peer_uuid,
+                "peer_ip": client_ip,
+                "peer_port": client_port
+            }
+        else:
+            discovery_request = {
+                "peer_ip": client_ip,
+                "peer_port": client_port
+            }
         response = requests.post(f"{server_url}/discovery", headers=header, data=json.dumps(discovery_request))
         response.raise_for_status()
-        return response.json()
+        if reconnect:
+            return True
+        else:
+            peer_uuid = response.json()['uuid']
+            return True
     except requests.exceptions.RequestException as e:
         print(f"Failed to connect to server, exception: {e}")
         return None
@@ -242,7 +253,23 @@ def shutdown_client():
     print("Exiting client...")
     sys.exit(0)
 
+def load_data_on_startup():
+    global peer_uuid, available_files
+    try:
+        with open(save_file_path, 'r') as file:
+            data_loaded = json.load(file)
+            peer_uuid = data_loaded.get("peer_uuid")
+            available_files = data_loaded.get("available_files", {})
+    except FileNotFoundError:
+        print(f"No saved data found at {save_file_path}, starting fresh.")
+    except json.JSONDecodeError:
+        print(f"Error decoding JSON data from {save_file_path}, starting fresh.")
+    except Exception as e:
+        print(f"Failed to load data on startup: {e}")
+
 def save_data_on_shutdown():
+    if peer_uuid is None:
+        return
     data_to_save = {
         "peer_uuid": peer_uuid,
         "available_files": available_files
@@ -282,13 +309,16 @@ if __name__ == "__main__":
     parser.add_argument('--server_port', type=int, required=True, help="p2p tracker's listening port")
     parser.add_argument('--client_ip', type=str, required=True, help="IP address of host machine.")
     parser.add_argument('--client_port', type=int, required=True, help="Port to which client will bind to communicate with peers")
+    parser.add_argument('--reconnect_peer', type=bool, required=False, default=False, help="Peer will use the UUID from the previous connection.")
     args = parser.parse_args()
     server_url = f"http://{args.server_ip}:{args.server_port}"
+    reconnect = args.reconnect_peer
     atexit.register(save_data_on_shutdown)
-    discovery_response = connect_to_server(server_url, args.client_ip, args.client_port)
-    if discovery_response == None:
+    if reconnect:
+        load_data_on_startup()
+    connect_response = connect_to_server(server_url, args.client_ip, args.client_port, reconnect)
+    if connect_response == None:
         sys.exit(1)
-    peer_uuid = discovery_response['uuid']
     file_list()
     start_http_server_thread(args.client_ip, args.client_port, available_files)
     wait_for_command()
