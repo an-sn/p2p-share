@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
-project(p2p_file_sharing)
+project(p2p-share)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.83.0 COMPONENTS system json REQUIRED)
-
-include_directories(include/)
 
 add_compile_options(-Wunused-variable)
 
@@ -24,3 +22,4 @@ target_link_libraries(p2p_server
     hiredis)
 
 target_include_directories(p2p_server PRIVATE ${Boost_INCLUDE_DIRS})
+target_include_directories(p2p_server PRIVATE include/)

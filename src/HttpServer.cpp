@@ -8,7 +8,7 @@
 #include "Utils.hpp"
 #include "HttpServer.hpp"
 #include "RedisPeerStorage.hpp"
-#include "FileMetadata.hpp"
+#include "FileMetaData.hpp"
 #include "PeerInfo.hpp"
 
 HttpServer::HttpServer(net::io_context& ioc, tcp::acceptor& acceptor, RedisPeerStorage& redisDb)
