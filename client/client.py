@@ -71,46 +71,45 @@ def file_list(print = False):
 
 def download_chunk(file_uuid, chunk_index, chunk_info, download_path):
     peers = chunk_info["peers"]
-    (peer_ip, peer_port) = (peers[0]["ip"], peers[0]["port"])
-    peer_url = "http://" + peer_ip + ":" + peer_port
-    print(peer_url)
-    print(f"Downloading file:{file_uuid}:chunk:{chunk_index} from peer: ({peer_ip}, {peer_port})")
-    try:
-        chunk_request = {
-            "file_uuid" : file_uuid,
-            "chunk_id" : chunk_index
-        }
-        json_req = json.dumps(chunk_request)
-        header = {'Content-Type': 'application/json', 'Content-Length': str(len(json_req))}
-        response = requests.get(f"{peer_url}/chunk_request", headers=header, data=json_req)
-        response.raise_for_status()
-        chunk_dir = os.path.join(download_path, "chunks")
-        if not os.path.exists(chunk_dir):
-            os.makedirs(chunk_dir)
-        chunk_file_path = os.path.join(chunk_dir, f"chunk_{chunk_index}")
-        sha256_hash = hashlib.sha256()
-        with open(chunk_file_path, 'wb') as chunk_file:
-            for chunk in response.iter_content(chunk_size=4096):
-                if chunk:
-                    chunk_file.write(chunk)
-                    sha256_hash.update(chunk)
-        downloaded_chunk_hash = sha256_hash.hexdigest()
-        if(downloaded_chunk_hash == chunk_info["hash"]):
-            chunk_advert(file_uuid, chunk_index)
-            return True
-        else:
-            print(f"Mismatch in chunk hash, expected: {chunk_info['hash']}, Actual : f{downloaded_chunk_hash}")
-            return False
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to get file:{file_uuid}::chunk:{chunk_index}, exception: {e}")
-        return False
+    for peer in peers:
+        (peer_ip, peer_port) = (peer["ip"], peer["port"])
+        peer_url = "http://" + peer_ip + ":" + peer_port
+        print(f"Downloading file:{file_uuid}:chunk:{chunk_index} from peer: ({peer_ip}, {peer_port})")
+        try:
+            chunk_request = {
+                "file_uuid" : file_uuid,
+                "chunk_id" : chunk_index
+            }
+            json_req = json.dumps(chunk_request)
+            header = {'Content-Type': 'application/json', 'Content-Length': str(len(json_req))}
+            response = requests.get(f"{peer_url}/chunk_request", headers=header, data=json_req)
+            response.raise_for_status()
+            chunk_dir = os.path.join(download_path, "chunks")
+            if not os.path.exists(chunk_dir):
+                os.makedirs(chunk_dir)
+            chunk_file_path = os.path.join(chunk_dir, f"chunk{chunk_index}")
+            sha256_hash = hashlib.sha256()
+            with open(chunk_file_path, 'wb') as chunk_file:
+                for chunk in response.iter_content(chunk_size=4096):
+                    if chunk:
+                        chunk_file.write(chunk)
+                        sha256_hash.update(chunk)
+            downloaded_chunk_hash = sha256_hash.hexdigest()
+            if(downloaded_chunk_hash == chunk_info["hash"]):
+                chunk_advert(file_uuid, chunk_index)
+                return True
+            else:
+                print(f"Mismatch in chunk hash, expected: {chunk_info['hash']}, Actual : f{downloaded_chunk_hash}")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to get file:{file_uuid}::chunk:{chunk_index}, exception: {e}")
+    print(f"Failed to download file:{file_uuid}::chunk:{chunk_index} from any peer!")
 
 def reassemble_chunks(file_name, download_path, number_of_chunks):
     chunk_dir = os.path.join(download_path, "chunks")
     target_file_path = os.path.join(download_path, file_name)
     with open(target_file_path, 'wb') as f:
         for chunk_index in range(number_of_chunks):
-            chunk_file_path = os.path.join(chunk_dir, f"chunk_{chunk_index}")
+            chunk_file_path = os.path.join(chunk_dir, f"chunk{chunk_index}")
             with open(chunk_file_path, 'rb') as chunk_file:
                 chunk_data = chunk_file.read()
                 f.write(chunk_data)
@@ -126,8 +125,10 @@ def download_file(file_uuid, file_details, download_path):
             entire_file_downloaded = False
             missing_chunks.append(chunk_index)
         chunk_index += 1
+    file_name = available_files[file_uuid]["file_name"]
     if entire_file_downloaded:
-        reassemble_chunks(available_files[file_uuid]["file_name"], download_path, len(chunk_list))
+        reassemble_chunks(file_name, download_path, len(chunk_list))
+        print("f{file_name} has been downloaded successfully.")
 
 # HTTP requests
 
