@@ -44,7 +44,7 @@ def print_available_files():
     print("\nAvailable Files:")
     print("-" * 50)
     for file_uuid, info in available_files.items():
-        print(f"File name: {info["file_name"]}")
+        print(f"File name: {info['file_name']}")
         print(f"  UUID: {file_uuid}")
         print(f"  Description: {info['file_description']}")
         print(f"  Size: {info['file_size']} bytes")
@@ -99,7 +99,7 @@ def download_chunk(file_uuid, chunk_index, chunk_info, download_path):
             chunk_advert(file_uuid, chunk_index)
             return True
         else:
-            print(f"Mismatch in chunk hash, expected: {chunk_info["hash"]}, Actual : f{downloaded_chunk_hash}")
+            print(f"Mismatch in chunk hash, expected: {chunk_info['hash']}, Actual : f{downloaded_chunk_hash}")
             return False
     except requests.exceptions.RequestException as e:
         print(f"Failed to get file:{file_uuid}::chunk:{chunk_index}, exception: {e}")
