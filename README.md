@@ -4,9 +4,11 @@ This project implements a hybrid P2P network where a central tracker stores file
 
 Peers can register files they are sharing, download specific file chunks from other peers, and use the central tracker for peer discovery and file metadata coordination.
 
-Peer info and file metadata are stored in Redis DB.
-
 ![Hybrid P2P Architecture](assets/hybrid_p2p_architecture.jpg)
+
+## Architecture
+
+The tracker is implemented in C++ using the Boost Beast library for handling HTTP requests and responses. Peer endpoints and file/chunk information are stored in an in-memory Redis database to ensure fast response times.
 
 ## Building the server
 
