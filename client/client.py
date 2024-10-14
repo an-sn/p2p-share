@@ -128,7 +128,7 @@ def download_file(file_uuid, file_details, download_path):
     file_name = available_files[file_uuid]["file_name"]
     if entire_file_downloaded:
         reassemble_chunks(file_name, download_path, len(chunk_list))
-        print("f{file_name} has been downloaded successfully.")
+        print(f"{file_name} has been downloaded successfully.")
 
 # HTTP requests
 
