@@ -30,7 +30,7 @@ docker run --name my-redis-container -p 6379:6379 -d redis
 We can start the server now.<br>
 Please provide the IP address through which Redis is accessible in the below command.
 ```
-docker run p2p <ip> 6379
+docker run -p <host_port>:8080 p2p <ip> 6379
 ```
 
 ## Client application
