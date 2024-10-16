@@ -73,10 +73,10 @@ def send_chunk_download_failure(file_uuid, chunk_index, chunk_peer_uuid):
     try:
         chunk_download_fail = {
             "file_uuid" : file_uuid,
-            "chunk_id" : chunk_index,
+            "chunk_index" : chunk_index,
             "peer_uuid" : chunk_peer_uuid
         }
-        json_req = json.dumps(chunk_request)
+        json_req = json.dumps(chunk_download_fail)
         header = {'Content-Type': 'application/json', 'Content-Length': str(len(json_req))}
         response = requests.post(f"{server_url}/chunk_dl_fail", headers=header, data=json_req)
         response.raise_for_status()

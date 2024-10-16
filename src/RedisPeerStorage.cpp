@@ -35,9 +35,9 @@ bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
-    redisReply* reply =
-        static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %s",
-                                              peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort.c_str()));
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %s",
+                                                              peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(),
+                                                              peerInfo.peerPort.c_str()));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
@@ -116,8 +116,8 @@ bool RedisPeerStorage::updateChunkPeerList(const ChunkAdvertisement& chunkAdvert
 
 bool RedisPeerStorage::deleteInactivePeerFromChunkList(const ChunkAdvertisement& chunkAdvert) {
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "SREM file:%s:chunks:%lld:peers %s",
-                                                                chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
-                                                                chunkAdvert.peerUuid.c_str()));
+                                                              chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
+                                                              chunkAdvert.peerUuid.c_str()));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
@@ -128,9 +128,8 @@ bool RedisPeerStorage::deleteInactivePeerFromChunkList(const ChunkAdvertisement&
         std::cerr << "Unexpected reply type: " << replyType << std::endl;
         return false;
     }
-    std::cout << "[DEBUG] Deleted inactive peer " << chunkAdvert.peerUuid.c_str() 
-              << "from file:" << chunkAdvert.fileUuid << ":chunks:" << chunkAdvert.chunkId
-              << ":peers" << std::endl;
+    std::cout << "[DEBUG] Deleted inactive peer " << chunkAdvert.peerUuid.c_str()
+              << "from file:" << chunkAdvert.fileUuid << ":chunks:" << chunkAdvert.chunkId << ":peers" << std::endl;
     return true;
 }
 
