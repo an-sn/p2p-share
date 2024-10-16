@@ -24,13 +24,12 @@ Start Redis DB (could be hosted on Docker or on bare-metal).
 Currently using Docker for illustration.
 
 ```
-docker run --name my-redis-container -p 6379:6379 -d redis
+docker run --name my-redis-container -p <redis_port>:6379 -d redis
 ```
 
-We can start the server now.<br>
-Please provide the IP address through which Redis is accessible in the below command.
+We can start the server now.
 ```
-docker run -p <host_port>:8080 p2p <ip> 6379
+docker run -p <host_port>:8080 p2p <redis_ip> <redis_port>
 ```
 
 ## Client application
