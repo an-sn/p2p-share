@@ -4,18 +4,15 @@
 #include <vector>
 #include <utility>
 
+#include "PeerInfo.hpp"
+
 struct ChunkAdvertisement {
     std::string fileUuid;
     std::string peerUuid;
     uint64_t chunkId;
 };
 
-struct IpPortPair {
-    std::string ip;
-    std::string port;
-};
-
-using PeerList = std::vector<IpPortPair>;
+using PeerList = std::vector<PeerInfo>;
 
 struct ChunkInfo {
     std::string hash;

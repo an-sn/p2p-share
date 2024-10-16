@@ -6,5 +6,5 @@
 struct PeerInfo {
     std::string peerUuid;
     std::string peerIp;
-    uint64_t peerPort;
+    std::string peerPort;
 };

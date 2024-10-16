@@ -69,11 +69,25 @@ def file_list(print = False):
         print(f"Failed to send file list request, exception: {e}")
         return None
 
+def send_chunk_download_failure(file_uuid, chunk_index, chunk_peer_uuid):
+    try:
+        chunk_download_fail = {
+            "file_uuid" : file_uuid,
+            "chunk_id" : chunk_index,
+            "peer_uuid" : chunk_peer_uuid
+        }
+        json_req = json.dumps(chunk_request)
+        header = {'Content-Type': 'application/json', 'Content-Length': str(len(json_req))}
+        response = requests.post(f"{server_url}/chunk_dl_fail", headers=header, data=json_req)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Could not notify server of file:{file_uuid}::chunk:{chunk_index} download failure, exception: {e}")
+
 def download_chunk(file_uuid, chunk_index, chunk_info, download_path):
     peers = chunk_info["peers"]
     for peer in peers:
-        (peer_ip, peer_port) = (peer["ip"], peer["port"])
-        peer_url = "http://" + peer_ip + ":" + peer_port
+        (peer_ip, peer_port, chunk_peer_uuid) = (peer["ip"], peer["port"], peer["peer_uuid"])
+        peer_url = "http://" + peer_ip + ":" + str(peer_port)
         print(f"Downloading file:{file_uuid}:chunk:{chunk_index} from peer: ({peer_ip}, {peer_port})")
         try:
             chunk_request = {
@@ -100,8 +114,10 @@ def download_chunk(file_uuid, chunk_index, chunk_info, download_path):
                 return True
             else:
                 print(f"Mismatch in chunk hash, expected: {chunk_info['hash']}, Actual : f{downloaded_chunk_hash}")
+                send_chunk_download_failure(file_uuid, chunk_index, chunk_peer_uuid)
         except requests.exceptions.RequestException as e:
             print(f"Failed to get file:{file_uuid}::chunk:{chunk_index}, exception: {e}")
+            send_chunk_download_failure(file_uuid, chunk_index, chunk_peer_uuid)
     print(f"Failed to download file:{file_uuid}::chunk:{chunk_index} from any peer!")
 
 def reassemble_chunks(file_name, download_path, number_of_chunks):
@@ -307,10 +323,10 @@ def wait_for_command():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="P2P file transfer client")
     parser.add_argument('--server_ip', type=str, required=True, help="IP address of p2p tracker")
-    parser.add_argument('--server_port', type=int, required=True, help="p2p tracker's listening port")
+    parser.add_argument('--server_port', type=str, required=True, help="p2p tracker's listening port")
     parser.add_argument('--client_ip', type=str, required=True, help="IP address of host machine.")
-    parser.add_argument('--client_port', type=int, required=True, help="Port to which client will bind to communicate with peers")
-    parser.add_argument('--reconnect_peer', type=bool, required=False, default=False, help="Peer will use the UUID from the previous connection.")
+    parser.add_argument('--client_port', type=str, required=True, help="Port to which client will bind to communicate with peers")
+    parser.add_argument('--reconnect_peer', action='store_true', help="Peer will use the UUID from the previous connection.")
     args = parser.parse_args()
     server_url = f"http://{args.server_ip}:{args.server_port}"
     reconnect = args.reconnect_peer
@@ -321,5 +337,5 @@ if __name__ == "__main__":
     if connect_response == None:
         sys.exit(1)
     file_list()
-    start_http_server_thread(args.client_ip, args.client_port, available_files)
+    start_http_server_thread(args.client_ip, int(args.client_port), available_files)
     wait_for_command()

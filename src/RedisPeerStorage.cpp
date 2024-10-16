@@ -36,8 +36,8 @@ bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
         return false;
     }
     redisReply* reply =
-        static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %lld",
-                                              peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort));
+        static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %s",
+                                              peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(), peerInfo.peerPort.c_str()));
     if (!reply) {
         std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
@@ -114,6 +114,26 @@ bool RedisPeerStorage::updateChunkPeerList(const ChunkAdvertisement& chunkAdvert
     return true;
 }
 
+bool RedisPeerStorage::deleteInactivePeerFromChunkList(const ChunkAdvertisement& chunkAdvert) {
+    redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "SREM file:%s:chunks:%lld:peers %s",
+                                                                chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
+                                                                chunkAdvert.peerUuid.c_str()));
+    if (!reply) {
+        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        return false;
+    }
+    auto replyType = reply->type;
+    freeReplyObject(reply);
+    if (replyType != REDIS_REPLY_INTEGER) {
+        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        return false;
+    }
+    std::cout << "[DEBUG] Deleted inactive peer " << chunkAdvert.peerUuid.c_str() 
+              << "from file:" << chunkAdvert.fileUuid << ":chunks:" << chunkAdvert.chunkId
+              << ":peers" << std::endl;
+    return true;
+}
+
 std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
     std::vector<FileMetadata> fileDetails;
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "KEYS file:*:metadata"));
@@ -172,7 +192,7 @@ std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::str
             return std::nullopt;
         }
         for (auto peerIndex = 0; peerIndex < reply->elements; peerIndex++) {
-            IpPortPair ipPortPair;
+            PeerInfo peerInfo;
             std::string peerUuid = reply->element[peerIndex]->str;
             redisReply* peerReply = static_cast<redisReply*>(
                 redisCommand(m_redisContext, "HMGET peer:%s peerIp peerPort", peerUuid.c_str()));
@@ -183,13 +203,14 @@ std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::str
                 continue;
             }
             if (peerReply->element[0]->type == REDIS_REPLY_STRING) {
-                ipPortPair.ip = peerReply->element[0]->str;
+                peerInfo.peerIp = peerReply->element[0]->str;
             }
             if (peerReply->element[1]->type == REDIS_REPLY_STRING) {
-                ipPortPair.port = peerReply->element[1]->str;
+                peerInfo.peerPort = peerReply->element[1]->str;
             }
+            peerInfo.peerUuid = std::move(peerUuid);
             freeReplyObject(peerReply);
-            chunk.peers.push_back(std::move(ipPortPair));
+            chunk.peers.push_back(std::move(peerInfo));
         }
         fileMetaData.chunkDetails.push_back(std::move(chunk));
     }

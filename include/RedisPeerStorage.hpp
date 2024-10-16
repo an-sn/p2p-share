@@ -19,6 +19,7 @@ class RedisPeerStorage {
     bool storePeerInfo(const PeerInfo& peerInfo);
     bool storeFileMetadata(const FileMetadata& fileMetadata);
     bool updateChunkPeerList(const ChunkAdvertisement& chunkAdvert);
+    bool deleteInactivePeerFromChunkList(const ChunkAdvertisement& chunkAdvert);
     std::vector<FileMetadata> retrieveAllFileDetails();
     std::optional<FileMetadata> retrieveFileDetails(const std::string& uuid);
 

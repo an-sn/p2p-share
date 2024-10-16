@@ -80,7 +80,7 @@ void HttpServer::handleDiscoveryRequest(const std::shared_ptr<http::request<http
     }
     PeerInfo peer = {.peerUuid = std::move(uuid),
                      .peerIp = utils::getFieldValue<std::string>(reqJson, "peer_ip"),
-                     .peerPort = utils::getFieldValue<uint64_t>(reqJson, "peer_port")};
+                     .peerPort = utils::getFieldValue<std::string>(reqJson, "peer_port")};
     http::status status = (m_redisDb.storePeerInfo(peer)) ? http::status::ok : http::status::internal_server_error;
     sendJsonResponse(responseJson, status, request->version(), std::move(socket));
 }
@@ -115,6 +115,17 @@ void HttpServer::handleChunkAdvertisement(const std::shared_ptr<http::request<ht
     sendJsonResponse({}, status, request->version(), std::move(socket));
 }
 
+void HttpServer::handleChunkDownloadFail(const std::shared_ptr<http::request<http::string_body>>& request,
+                                          std::unique_ptr<tcp::socket> socket){
+    auto reqJson = parseRequest(request);
+    ChunkAdvertisement chunkAdvert = {.fileUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid"),
+                                    .peerUuid = utils::getFieldValue<std::string>(reqJson, "peer_uuid"),
+                                    .chunkId = utils::getFieldValue<uint64_t>(reqJson, "chunk_index")};
+    http::status status =
+        (m_redisDb.deleteInactivePeerFromChunkList(chunkAdvert)) ? http::status::ok : http::status::internal_server_error;
+    sendJsonResponse({}, status, request->version(), std::move(socket));
+}
+
 void HttpServer::handleFileListRequest(const std::shared_ptr<http::request<http::string_body>>& request,
                                        std::unique_ptr<tcp::socket> socket) {
     auto fileList = m_redisDb.retrieveAllFileDetails();
@@ -146,8 +157,9 @@ void HttpServer::handleFileRequest(const std::shared_ptr<http::request<http::str
         json::array peerArray;
         for (const auto& peer : chunk.peers) {
             json::object peerJson;
-            peerJson["ip"] = std::move(peer.ip);
-            peerJson["port"] = std::move(peer.port);
+            peerJson["peer_uuid"] = std::move(peer.peerUuid);
+            peerJson["ip"] = std::move(peer.peerIp);
+            peerJson["port"] = std::move(peer.peerPort);
             peerArray.push_back(std::move(peerJson));
         }
         chunkJson["peers"] = std::move(peerArray);
@@ -169,7 +181,10 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
                 handleFileAdvertisement(request, std::move(socket));
             } else if (target == "/chunk_advert") {
                 handleChunkAdvertisement(request, std::move(socket));
-            } else {
+            } else if (target == "chunk_dl_fail") {
+                handleChunkDownloadFail(request, std::move(socket));
+            }
+            else {
                 std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
             }
         } else if (request->method() == http::verb::get) {
