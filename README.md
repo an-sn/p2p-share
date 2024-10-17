@@ -36,6 +36,17 @@ docker run -p <host_port>:8080 p2p <redis_ip> <redis_port>
 
 The client shares file metadata with the server and directly communicates with other peers to send and receive files.
 
+Create a python virtual environment (recommended):
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Installing dependencies:
+```
+pip install -r client/requirements.txt
+```
+
 Starting the client:
 ```
 python3 client.py --server_ip <server_ip> --server_port <server_port> --client_ip <client_ip> --client_port <client_port>
