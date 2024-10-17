@@ -1,0 +1,16 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  server:
+    build: .
+    container_name: p2p_server
+    ports:
+      - "5100:8080"
+    depends_on:
+      - redis
+    entrypoint: ["/app/p2p_server", "redis", "6379"]
