@@ -2,3 +2,4 @@ build/
 *.o
 *.so
 client/venv
+client/__pycache__/
