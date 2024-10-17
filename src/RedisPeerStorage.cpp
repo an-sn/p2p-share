@@ -30,6 +30,16 @@ bool RedisPeerStorage::connect(std::string ipAddress, unsigned short port) {
     return true;
 }
 
+void RedisPeerStorage::closeConnection() {
+    if (m_redisContext != nullptr) {
+        redisFree(m_redisContext);
+        m_redisContext = nullptr;
+        std::cout << "Redis DB connection closed." << std::endl;
+    } else {
+        std::cout << "No active Redis DB connection to close." << std::endl;
+    }
+}
+
 bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
     if (!m_redisContext) {
         std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;

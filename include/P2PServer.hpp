@@ -11,6 +11,7 @@ class P2PServer {
     ~P2PServer();
     void startListening();
     bool connectToDatabase(std::string ipAddress, unsigned short port);
+    void stopServer();
 
   private:
     net::io_context m_ioc;

@@ -21,3 +21,8 @@ void P2PServer::startListening() {
     httpServer.start();
     m_ioc.run();
 }
+
+void P2PServer::stopServer() {
+    m_redisDb.closeConnection();
+    m_ioc.stop();
+}

@@ -1,4 +1,14 @@
 #include "P2PServer.hpp"
+#include <csignal>
+#include <iostream>
+
+P2PServer* g_p2pServer = nullptr;
+
+void handleSignal(int signum) {
+    if (g_p2pServer) {
+        g_p2pServer->stopServer();
+    }
+}
 
 int main(int argc, char* argv[]) {
     std::string redisIp = "127.0.0.1";
@@ -10,9 +20,13 @@ int main(int argc, char* argv[]) {
         redisPort = std::atoi(argv[2]);
     }
     P2PServer server;
+    g_p2pServer = &server;
+    std::signal(SIGTERM, handleSignal);
+    std::signal(SIGINT, handleSignal);
     if (!server.connectToDatabase(redisIp, redisPort)) {
         return 1;
     }
     server.startListening();
+    std::cout << "P2P Server exiting!" << std::endl;
     return 0;
 }

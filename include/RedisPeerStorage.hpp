@@ -16,6 +16,7 @@ class RedisPeerStorage {
     ~RedisPeerStorage();
 
     bool connect(std::string ipAddress, unsigned short port);
+    void closeConnection();
     bool storePeerInfo(const PeerInfo& peerInfo);
     bool storeFileMetadata(const FileMetadata& fileMetadata);
     bool updateChunkPeerList(const ChunkAdvertisement& chunkAdvert);

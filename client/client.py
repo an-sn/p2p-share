@@ -322,11 +322,11 @@ def wait_for_command():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="P2P file transfer client")
-    parser.add_argument('--server_ip', type=str, required=True, help="IP address of the machine where the server is running")
-    parser.add_argument('--server_port', type=str, required=True, help="Port on which the server is listening (default: 5100).")
-    parser.add_argument('--client_ip', type=str, required=True, help="IP address of the machine where the client is running")
-    parser.add_argument('--client_port', type=str, required=True, help="Any user-defined port that the client will use for communication (choose a port that is not in use).")
-    parser.add_argument('--reconnect_peer', action='store_true', help="Peer will reuse its old context while connecting back to the tracker.")
+    parser.add_argument('--server_ip', type=str, default="localhost", help="IP address of the machine where the server is running. Default: localhost")
+    parser.add_argument('--server_port', type=str, default="5100", help="Port on which the server is listening. Default: 5100")
+    parser.add_argument('--client_ip', type=str, default="localhost", help="IP address of the machine where the client is running. Default: localhost")
+    parser.add_argument('--client_port', type=str, default="7171", help="Any user-defined port that the client will use for communication. Default: 7171")
+    parser.add_argument('--reconnect_peer', action='store_true', help="Peer will reuse its old context while connecting back to the tracker")
     args = parser.parse_args()
     server_url = f"http://{args.server_ip}:{args.server_port}"
     reconnect = args.reconnect_peer
