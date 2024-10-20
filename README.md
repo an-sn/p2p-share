@@ -26,6 +26,11 @@ docker-compose build
 ```
 docker-compose up
 ```
+## Stopping the server
+```
+docker-compose down
+```
+
 ## Client application
 The client shares file metadata with the server and directly communicates with other peers to send and receive files.
 Create a python virtual environment (recommended):
