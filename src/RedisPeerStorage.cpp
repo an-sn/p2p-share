@@ -23,7 +23,7 @@ bool RedisPeerStorage::connect(std::string ipAddress, unsigned short port) {
         errorMessage += m_redisContext->errstr;
         redisFree(m_redisContext);
         m_redisContext = nullptr;
-        std::cout << errorMessage << std::endl;
+        // std::cout << errorMessage << std::endl;
         return false;
     }
     std::cout << "Successfully connected to Redis DB!" << std::endl;
@@ -34,37 +34,38 @@ void RedisPeerStorage::closeConnection() {
     if (m_redisContext != nullptr) {
         redisFree(m_redisContext);
         m_redisContext = nullptr;
-        std::cout << "Redis DB connection closed." << std::endl;
+        // std::cout << "Redis DB connection closed." << std::endl;
     } else {
-        std::cout << "No active Redis DB connection to close." << std::endl;
+        // std::cout << "No active Redis DB connection to close." << std::endl;
+        ;
     }
 }
 
 bool RedisPeerStorage::storePeerInfo(const PeerInfo& peerInfo) {
     if (!m_redisContext) {
-        std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
+        // std::cerr << "Failed to save peer info. Redis connection is not established." << std::endl;
         return false;
     }
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "HSET peer:%s peerIp %s peerPort %s",
                                                               peerInfo.peerUuid.c_str(), peerInfo.peerIp.c_str(),
                                                               peerInfo.peerPort.c_str()));
     if (!reply) {
-        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        // std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
     }
     auto replyType = reply->type;
     freeReplyObject(reply);
     if (replyType != REDIS_REPLY_INTEGER) {
-        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        // std::cerr << "Unexpected reply type: " << replyType << std::endl;
         return false;
     }
-    std::cout << "[DEBUG] PEER DATA SAVED." << std::endl;
+    // std::cout << "[DEBUG] PEER DATA SAVED." << std::endl;
     return true;
 }
 
 bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     if (!m_redisContext) {
-        std::cerr << "Failed to store file metadata. Redis connection is not established." << std::endl;
+        // std::cerr << "Failed to store file metadata. Redis connection is not established." << std::endl;
         return false;
     }
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "MULTI"));
@@ -86,23 +87,23 @@ bool RedisPeerStorage::storeFileMetadata(const FileMetadata& metaData) {
     }
     reply = static_cast<redisReply*>(redisCommand(m_redisContext, "EXEC"));
     if (!reply) {
-        std::cerr << "Failed to complete file transaction!" << std::endl;
+        // std::cerr << "Failed to complete file transaction!" << std::endl;
         return false;
     }
     if (reply->type != REDIS_REPLY_ARRAY) {
-        std::cerr << "Transaction execution failed: Unexpected reply type: " << reply->type << std::endl;
+        // std::cerr << "Transaction execution failed: Unexpected reply type: " << reply->type << std::endl;
         freeReplyObject(reply);
         return false;
     }
     for (size_t i = 0; i < reply->elements; ++i) {
         if (reply->element[i]->type != REDIS_REPLY_INTEGER) {
-            std::cerr << "Failed to save metadata or chunk data!" << std::endl;
+            // std::cerr << "Failed to save metadata or chunk data!" << std::endl;
             freeReplyObject(reply);
             return false;
         }
     }
     freeReplyObject(reply);
-    std::cout << "[DEBUG] Metadata and chunk data saved successfully." << std::endl;
+    // std::cout << "[DEBUG] Metadata and chunk data saved successfully." << std::endl;
     return true;
 }
 
@@ -111,16 +112,16 @@ bool RedisPeerStorage::updateChunkPeerList(const ChunkAdvertisement& chunkAdvert
                                                               chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
                                                               chunkAdvert.peerUuid.c_str()));
     if (!reply) {
-        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        // std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
     }
     auto replyType = reply->type;
     freeReplyObject(reply);
     if (replyType != REDIS_REPLY_INTEGER) {
-        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        // std::cerr << "Unexpected reply type: " << replyType << std::endl;
         return false;
     }
-    std::cout << "[DEBUG] Updated chunk peers." << std::endl;
+    // std::cout << "[DEBUG] Updated chunk peers." << std::endl;
     return true;
 }
 
@@ -129,17 +130,17 @@ bool RedisPeerStorage::deleteInactivePeerFromChunkList(const ChunkAdvertisement&
                                                               chunkAdvert.fileUuid.c_str(), chunkAdvert.chunkId,
                                                               chunkAdvert.peerUuid.c_str()));
     if (!reply) {
-        std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
+        // std::cerr << "Error executing command: " << m_redisContext->errstr << std::endl;
         return false;
     }
     auto replyType = reply->type;
     freeReplyObject(reply);
     if (replyType != REDIS_REPLY_INTEGER) {
-        std::cerr << "Unexpected reply type: " << replyType << std::endl;
+        // std::cerr << "Unexpected reply type: " << replyType << std::endl;
         return false;
     }
-    std::cout << "[DEBUG] Deleted inactive peer " << chunkAdvert.peerUuid.c_str()
-              << "from file:" << chunkAdvert.fileUuid << ":chunks:" << chunkAdvert.chunkId << ":peers" << std::endl;
+    // std::cout << "[DEBUG] Deleted inactive peer " << chunkAdvert.peerUuid.c_str()
+    //           << "from file:" << chunkAdvert.fileUuid << ":chunks:" << chunkAdvert.chunkId << ":peers" << std::endl;
     return true;
 }
 
@@ -147,7 +148,7 @@ std::vector<FileMetadata> RedisPeerStorage::retrieveAllFileDetails() {
     std::vector<FileMetadata> fileDetails;
     redisReply* reply = static_cast<redisReply*>(redisCommand(m_redisContext, "KEYS file:*:metadata"));
     if (reply == nullptr) {
-        std::cerr << "Error: " << m_redisContext->errstr << std::endl;
+        // std::cerr << "Error: " << m_redisContext->errstr << std::endl;
         return fileDetails;
     }
     for (size_t i = 0; i < reply->elements; ++i) {
@@ -187,7 +188,7 @@ std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::str
         reply = static_cast<redisReply*>(
             redisCommand(m_redisContext, "HGET file:%s:chunks:%lld hash", uuid.c_str(), chunkIndex));
         if (!reply || reply->type != REDIS_REPLY_STRING) {
-            std::cout << "Failed to retrieve hash" << std::endl;
+            // std::cout << "Failed to retrieve hash" << std::endl;
             freeReplyObject(reply);
             return std::nullopt;
         }
@@ -196,7 +197,7 @@ std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::str
         reply = static_cast<redisReply*>(
             redisCommand(m_redisContext, "SMEMBERS file:%s:chunks:%lld:peers", uuid.c_str(), chunkIndex));
         if (!reply || reply->type != REDIS_REPLY_ARRAY) {
-            std::cout << "Failed to fetch peers for chunk" << std::endl;
+            // std::cout << "Failed to fetch peers for chunk" << std::endl;
             freeReplyObject(reply);
             return std::nullopt;
         }
@@ -206,7 +207,7 @@ std::optional<FileMetadata> RedisPeerStorage::retrieveFileDetails(const std::str
             redisReply* peerReply = static_cast<redisReply*>(
                 redisCommand(m_redisContext, "HMGET peer:%s peerIp peerPort", peerUuid.c_str()));
             if (!peerReply || peerReply->type != REDIS_REPLY_ARRAY || peerReply->elements != 2) {
-                std::cout << "Failed to get peer details from UUID" << std::endl;
+                // std::cout << "Failed to get peer details from UUID" << std::endl;
                 if (peerReply)
                     freeReplyObject(peerReply);
                 continue;

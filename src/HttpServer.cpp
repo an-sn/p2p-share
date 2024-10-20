@@ -36,11 +36,13 @@ void HttpServer::onAccept(boost::system::error_code ec, std::unique_ptr<tcp::soc
                 if (!ec) {
                     processRequest(buffer, request, std::move(socket));
                 } else {
-                    std::cerr << "Failed to handle request: " << ec.message() << std::endl;
+                    // std::cerr << "Failed to handle request: " << ec.message() << std::endl;
+                    ;
                 }
             });
     } else {
-        std::cout << "Failed to accept HTTP connection! Error: " << ec.message() << std::endl;
+        // std::cout << "Failed to accept HTTP connection! Error: " << ec.message() << std::endl;
+        ;
     }
 
     doAccept();
@@ -62,7 +64,8 @@ void HttpServer::sendJsonResponse(const boost::json::object& responseJson, http:
 
     http::async_write(*socket, *res, [res, socket = std::move(socket)](beast::error_code ec, std::size_t) {
         if (ec) {
-            std::cerr << "Error sending response: " << ec.message() << std::endl;
+            // std::cerr << "Error sending response: " << ec.message() << std::endl;
+            ;
         }
     });
 }
@@ -147,7 +150,7 @@ void HttpServer::handleFileRequest(const std::shared_ptr<http::request<http::str
     auto fileUuid = utils::getFieldValue<std::string>(reqJson, "file_uuid");
     auto fileDetails = m_redisDb.retrieveFileDetails(fileUuid);
     if (!fileDetails.has_value()) {
-        std::cout << "Failed to retrieve file details" << std::endl;
+        // std::cout << "Failed to retrieve file details" << std::endl;
         return;
     }
     json::object responseJson;
@@ -185,7 +188,8 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
             } else if (target == "/chunk_dl_fail") {
                 handleChunkDownloadFail(request, std::move(socket));
             } else {
-                std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
+                // std::cerr << "Unsupported target. Dropping HTTP request" << std::endl;
+                ;
             }
         } else if (request->method() == http::verb::get) {
             auto target = request->target();
@@ -196,10 +200,13 @@ void HttpServer::processRequest(std::shared_ptr<beast::flat_buffer> buffer,
             }
         }
     } catch (const boost::json::system_error& e) {
-        std::cerr << "JSON parsing failed: " << e.what() << std::endl;
+        // std::cerr << "JSON parsing failed: " << e.what() << std::endl;
+        ;
     } catch (const std::runtime_error& e) {
-        std::cerr << "Failed to extract field from JSON " << e.what() << std::endl;
+        // std::cerr << "Failed to extract field from JSON " << e.what() << std::endl;
+        ;
     } catch (const std::exception& e) {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        // std::cerr << "Exception caught: " << e.what() << std::endl;
+        ;
     }
 }

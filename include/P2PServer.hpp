@@ -9,7 +9,7 @@ class P2PServer {
   public:
     P2PServer();
     ~P2PServer();
-    void startListening();
+    void startListening(int threadCount);
     bool connectToDatabase(std::string ipAddress, unsigned short port);
     void stopServer();
 
