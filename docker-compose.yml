@@ -12,4 +12,4 @@ services:
       - "5100:8080"
     depends_on:
       - redis
-    entrypoint: ["/app/p2p_server", "redis", "6379"]
+    command: ["./p2p_server", "redis", "6379"]

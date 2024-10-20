@@ -25,5 +25,3 @@ RUN mkdir -p /app/build; cd /app/build/ ; cmake .. ; make -j$(nproc)
 RUN cp /app/build/p2p_server /tmp/
 RUN rm -rf /app/* && mv /tmp/p2p_server /app
 EXPOSE 8080
-ENTRYPOINT ["./p2p_server"]
-CMD ["redis", "6379"]
